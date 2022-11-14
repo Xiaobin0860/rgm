@@ -7,7 +7,7 @@ use axum::{
     Json, Router, Server as WebServer,
 };
 use redis::{Client as RedisClient, Commands, ConnectionLike};
-use rgm::AppError;
+use rgm::{render, templates, AppError};
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -17,7 +17,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 async fn main() -> Result<(), AppError> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "rgm=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "rgm=trace".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -34,6 +34,7 @@ async fn main() -> Result<(), AppError> {
     // build our application with some routes
     let app = Router::new()
         .route("/battle", get(get_battle).post(post_battle))
+        .route("/hello2", get(get_hello2))
         .route("/hello", get(get_hello).post(post_hello))
         .layer(Extension(rds_client));
 
@@ -61,6 +62,16 @@ async fn get_hello(Extension(rds): Extension<RedisClient>) -> impl IntoResponse 
         Ok(mut conn) => conn.get("hello").unwrap_or_default(),
         _ => "".to_string(),
     };
+    tracing::trace!("hello {name}");
+    render(|buf| templates::hello_html(buf, &name))
+}
+
+async fn get_hello2(Extension(rds): Extension<RedisClient>) -> impl IntoResponse {
+    let name = match rds.get_connection_with_timeout(Duration::from_secs(1)) {
+        Ok(mut conn) => conn.get("hello").unwrap_or_default(),
+        _ => "".to_string(),
+    };
+    tracing::trace!("hello2 {name}");
     let template = HelloTemplate { name };
     HtmlTemplate(template)
 }

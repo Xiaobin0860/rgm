@@ -10,7 +10,10 @@ axum = "0.5"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-redis = "0.21"
+redis = "0.22"
 thiserror = "1"
 askama = "0.11"
 serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+ructe = "0.15"
